@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!DOCTYPE overlay SYSTEM "chrome://mail2pdfModule/locale/mail2pdf.dtd">
+<overlay id="mboximportOverlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<script type="application/x-javascript" src="chrome://mboximport/content/mboximport.js" />
+<script type="application/x-javascript" src="chrome://messenger/content/dateFormat.js" />
+<script type="application/x-javascript" src="chrome://mboximport/content/exportTools.js" />
+<script type="application/x-javascript" src="chrome://mboximport/content/menufunctions.js" />
+<script type="application/x-javascript" src="chrome://mboximport/content/utils.js" />
+
+<stringbundleset id="stringbundleset">
+	<stringbundle id="backupStr" src="chrome://mboximport/locale/autobackup.properties"/>
+</stringbundleset>
+
+<popup id="folderPaneContext">
+	<menuseparator id="IETsep" />
+	<menu label="&labelmenuMItools;" id="IETmenu">
+		<menupopup id="mbxpopup" onpopupshowing="IETsetMBmenu();">
+			<menuitem id="mboxexport" label=""  />
+			<menuitem id="mboxMail2pdf" label="&export2pdf;" oncommand="exportExport2pdf();" />
+
+		</menupopup>
+	</menu>
+</popup>
+
+<menupopup id="menu_FilePopup">
+	<menu label="&saveSelected;" id="multipleSave"  insertafter="menu_close">
+	<observes element="printMenuItem" attribute="disabled" />
+		<menupopup id="mbxpopup" onpopupshowing="IETsetMBmenu();">
+		<menuitem id="mboxexport" label=""  />
+		<menuitem id="mboxMail2pdf" label="&export2pdf;" oncommand="exportExport2pdf();" />
+
+		</menupopup>
+	</menu>
+	<menuseparator  insertafter="menu_close" />
+</menupopup>
+
+
+<statusbar id="status-bar">
+	<hbox id="statusTextBox">
+		<statusbarpanel id="IETabortIcon" class="statusbarpanel-iconic" src="chrome://mboximport/content/stop.gif" oncommand="IETabortExport()" collapsed="true" tooltiptext="&abortExport;" insertbefore="statusText" />
+	</hbox>
+</statusbar>
+
+</overlay>
