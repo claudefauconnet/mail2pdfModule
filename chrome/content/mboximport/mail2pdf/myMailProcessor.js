@@ -1,7 +1,7 @@
 var path = require("path");
 var fs = require("fs");
-
-var modulesDir='../../../../nodeJS/node_modules/'
+var totalMails=0;
+var modulesDir="";//'../../../../nodeJS/node_modules/'
 console.log("---modulesDir----"+path.resolve(modulesDir));
 var simpleParser = require(modulesDir+'mailparser').simpleParser;
 var async = require(modulesDir+"async");
@@ -13,30 +13,30 @@ mailProcessor = {
     totalCountMails: 0,
     messageIds: [],
     processMails: function (file,targetPdfPath) {
+        if(!targetPdfPath)
+            targetPdfPath= require('os').homedir();
 
-        //  var file = dir + path.sep + "EXPORT_MAILS_TO_PDF.json";
+        //  var file = dir + path.sep + "thunderbirdMailsToProcess.js";
         var dataStr =""+ fs.readFileSync(file);
         var json = JSON.parse( dataStr);
 
         var archiveRootDir = json.archiveRootDir;
         var data = json.emlFiles;
+        async.eachSeries(data,function(emlObj,callbackAsync0){
 
-        for (var i = 0; i < data.length; i++) {
-
-
-            var emlObj = data[i];
             var emlFileContent = "" + fs.readFileSync(emlObj.path);
-            var relativePath = emlObj.path.substring(archiveRootDir.length + 1)
-
-            emlFileContent = emlFileContent.replace(/[\r]+.*/gm, "");
-            var mailContents = mailProcessor.splitEml(emlFileContent);
-
+            var relativePath = emlObj.path.substring(archiveRootDir.length + 1);
             var RootDirPosition = emlObj.path.indexOf(archiveRootDir);
             var relativePath = emlObj.path.substring(RootDirPosition);
             var pdfDir=targetPdfPath;//emlObj.path.substring(0,RootDirPosition-1);
+
+            emlFileContent = emlFileContent.replace(/[\r]+.*/gm, "");
+            var mailContents = mailProcessor.splitEml(emlFileContent);
+var emlCountMails=mailContents.length;
             mailProcessor.totalCountMails += mailContents.length;
             //   var message = resources.Message_dirProcessing[self.currentLang] + self.getPdfArchivePath(apath) + " " + mailsContent.length + " emails";
             async.eachSeries(mailContents, function (mailContent, callbackAsync) {
+
 
 
                 var mail = {
@@ -46,17 +46,24 @@ mailProcessor = {
                 }
 
                 mailProcessor.processMail(mail, function (err, result) {
-                    if (err) {
+                   if (err) {
+                        console.log(err);
                         return callbackAsync(null);
                     }
                     var x = result;
                     callbackAsync(null);
                 })
             }, function (err) {
-                console.log("done");
-            })
+                console.log(emlCountMails+"mails processed in  directory : "+relativePath );
 
-        }
+                    return  callbackAsync0();
+            }
+
+            )
+
+        },function(err){
+            return  console.log ("-------ALL DONE , mails processed : "+ mailProcessor.totalCountMails)
+                })
 
 
     },
@@ -89,8 +96,9 @@ mailProcessor = {
                 mailPdfGenerator.createMailPdf(parsedMail, mail.pdfDir, mail.pdfDirRelativePath,  sender, senderDirDate, function (error, result) {
 
                     if (error) {
+
                         // archiveProcessor.consoleToFile(error);
-                        callback(error)
+                      return  callback(error)
                         /*     setMessage(self.message += "<br>" + resources.Exception_uploadFailed[self.currentLang] + data.title + " id " + data.messageId)
                              callback();*/
 
@@ -234,4 +242,4 @@ mailProcessor = {
 }
 module.exports=mailProcessor;
 
-//mailProcessor.processMails("C:\\Users\\claud\\AppData\\Roaming\\Thunderbird\\Profiles\\lb11cn7x.default\\exportToPdf\\EXPORT_MAILS_TO_PDF.json")
+//mailProcessor.processMails("C:\\Users\\claud\\thunderbirdMailsToProcess.js")

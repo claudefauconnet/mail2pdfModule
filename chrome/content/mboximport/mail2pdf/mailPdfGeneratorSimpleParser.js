@@ -26,7 +26,7 @@
  ******************************************************************************/
 
 var fs = require('fs')
-var modulesDir='../../../../nodeJS/node_modules/'
+var modulesDir="";//'../../../../nodeJS/node_modules/'
 var PDFDocument = require(modulesDir+'pdfkit');
 var path = require('path');
 var mailProcessor = require('./myMailProcessor.js');
@@ -36,7 +36,7 @@ var addMetaData=false;
 
 
 var mailPdfGenerator = {
-    pdfDir: "pdfArchives",
+    pdfDir: "",//"pdfArchives",
     maxPdfSubjectLength: 33,
     addMetaData: true
     ,
@@ -67,8 +67,6 @@ var mailPdfGenerator = {
             }
 
 
-            //    var pdfFileName = mail.date.toString('yyyy-MM-dd');
-            //   var index = Math.round(Math.random() * 10000)
 
             var mailTitle;
             if (mail.subject)
@@ -91,6 +89,7 @@ var mailPdfGenerator = {
                         //    var id = mail.attachments[i].contentId;
 
                         var attachmentName = mailPdfGenerator.processAttachment(mail.attachments[i], parentDirPath, pdfFileName);
+                        if(attachmentName)
                         attachments.push(attachmentName);//"<a href='attachments/"+attachmentName+"'>"+mail.attachments[i].filename + "</a>\n";
                     }
                 }
@@ -98,7 +97,9 @@ var mailPdfGenerator = {
 
 
             var doc = new PDFDocument
-            doc.pipe(fs.createWriteStream(path.resolve(parentDirPath + "/" + pdfFileName)));
+            var pdfPath=path.resolve(parentDirPath + "/" + pdfFileName);
+            console.log("--processing--"+pdfFileName)
+            doc.pipe(fs.createWriteStream(pdfPath));
 
 
             var fontSize = {
@@ -239,9 +240,9 @@ var mailPdfGenerator = {
             return callback(null, {path: relativeFolderPath, file: pdfFileName});
         }
         catch (e) {
-            console.log(e)
+            console.log (" ERROR , file "+pdfFileName+" skipped : "+e);
             //    mailProcessor.log("!! pdf exception " + e)
-            callback(e)
+           return  callback(e)
         }
     },
     formatStringForArchive: function (str, maxLength) {

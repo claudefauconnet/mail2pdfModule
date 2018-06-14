@@ -13,7 +13,6 @@ var mail2PdfNodeInitPath = null;
 var userDirPath = null;
 
 
-
 function exportMail2pdf() {
 
     console.log("mail2pdf")
@@ -21,25 +20,18 @@ function exportMail2pdf() {
 }
 
 var mail2PdfNodeInitJsName = "mail2PdfNodeInit.js"
-var exportFileName = "EXPORT_MAILS_TO_PDF.json";
+var exportFileName = "thunderbirdMailsToProcess.js";
 var archiveRootDirName = "pdfArchives";
 
-
+/**
+ *
+ * init all pathes vars
+ *
+ *
+ *
+ */
 function initPathes() {
-    /*  Components.utils.import("resource://gre/modules/FileUtils.jsm");
-      path = FileUtils.getFile("Home", ["test.xxx"]).path;*/
-    // find directory separator type
 
-
-    /*console.log(OS.Constants.Path.libxul)
-    console.log(OS.Constants.Path.profileDir)
-    console.log(OS.Constants.Path.homeDir)
-    console.log(OS.Constants.Path.desktopDir)
-    console.log(OS.Constants.Path.winAppDataDir)
-    console.log(OS.Constants.Path.winLocalAppDataDir)
-    console.log(OS.Constants.Path.winStartMenuProgsDir)
-    console.log(OS.Constants.Path.macUserLibDir)
-    console.log(OS.Constants.Path.macLocalApplicationsDir)*/
     userDirPath = OS.Constants.Path.homeDir;
     Components.utils.import("resource://gre/modules/AddonManager.jsm");
     AddonManager.getAddonByID("mail2pdf@souslesens", function (addon) {
@@ -70,22 +62,28 @@ function initPathes() {
     else
         sep = "/"
     pluginDir = pluginDir.substring(0, pluginDir.indexOf("sessionstore.js")).replace(/\\/g, "/") + "pdfArchives";
-    mailsJsonPath = OS.Path.join(pluginDir, exportFileName);
+    // mailsJsonPath = OS.Path.join(pluginDir, exportFileName);
+    mailsJsonPath = OS.Path.join(userDirPath, exportFileName);
 
 
 }
 
+/**
+ *
+ *  iterate recursively through messages folders to create the archive tree described in  file mailsJsonPath
+ *
+ *
+ *
+ */
 
 function exportfolder() {
     initPathes();
 
     var mails = "";
-    var rootDirName="";
-    //var archiveRootDir=  fileWriter.getLocalDirectory(archiveRootDirName).path.replace(/\\/g,"/");
     var archiveRootDir = pluginDir + archiveRootDirName;
+
+
     var folders = GetSelectedMsgFolders();
-
-
     for (var i = 0; i < folders.length; i++) {
         var isVirtualFolder = folders[i] ? folders[i].flags & 0x0020 : false;
         if ((i > 0 && folders[i].server.type != lastType) || (folders.length > 1 && isVirtualFolder)) {
@@ -100,14 +98,13 @@ function exportfolder() {
         var file = msgFolder2LocalFile(folders[i]);
         var filePath = file.path;
 
-
-        //    folderName = folderName.replace(/[\\:?"\*\/<>#]/g, "_");
-        //   folderName = folderName.replace(/[\x00-\x19]/g, "_");
         var file = new FileUtils.File(filePath);
-
+        var stop = false;
 
         function recurse(file) {
-            var dirSbd = new FileUtils.File(file.path + ".sbd");
+
+            var sbdPath = file.path + ".sbd";
+            var dirSbd = new FileUtils.File(sbdPath);
             if (dirSbd.exists() && dirSbd.isDirectory()) {
                 var items = dirSbd.directoryEntries;
                 while (items.hasMoreElements()) {
@@ -115,6 +112,12 @@ function exportfolder() {
                     singlefile.QueryInterface(Components.interfaces.nsIFile);
                     if (singlefile.path.indexOf(".msf") < 0)
                         recurse(singlefile, file.leafName);
+                }
+            }
+            else {
+                stop = true;
+                if (!stop) {
+                    return window.alert("archive folder must be a local folder:" + filePath);
                 }
             }
             if (file.isFile()) {
@@ -132,14 +135,15 @@ function exportfolder() {
 
         mails = mails.substring(0, mails.length - 2) + "]}";
 
-
-        let encoder = new TextEncoder();                                   // This encoder can be reused for several writes
+        let encoder = new TextEncoder();
         let array = encoder.encode(mails);
-        // var writePath = OS.Path.join(pluginDir, exportFileName);// Convert the text to an array
         let promise = OS.File.writeAtomic(mailsJsonPath, array, {tmpPath: mailsJsonPath + '.tmp'});
         promise.then(
             function (aVal) {
                 console.log('successfully saved ' + mailsJsonPath);
+                if(true){
+                   return  alert("Pour finaliser l'export   exécutez la commande mail2PDF.sh située dans votre dossier personnel")
+                }
                 runNodeMail2pdf(mailsJsonPath, function (err, result) {
                     console.log("runNode!" + exportFileName)
                 })
@@ -148,12 +152,6 @@ function exportfolder() {
                 console.log('writeAtomic failed for reason:', aReason);
             }
         );
-        /*fileWriter.writeFile("exportToPdf",exportFileName,mails);
- /*  var nodeStartDir= fileWriter.getLocalDirectory("exportToPdf").path;
-     copyNodeInitFile();
-     runNodeMail2pdf("exportToPdf"+"/"+exportFileName,nodeStartDir, function (err, result) {
-         console.log("runNode!" + exportFileName)
-     })*/
 
 
     }
@@ -161,34 +159,22 @@ function exportfolder() {
 
 }
 
-/*function copyNodeInitFile(){
+/**
+ *
+ * 1) write in processNodeMail_bat_path the command line to run node with correct parameters
+ * 2) run a process with file processNodeMail_bat_path
+ *
+ *
+ *
+ * @param exportFileName
+ * @param callback
+ *
+ *
+ */
 
-
-// get the "data.txt" file in the profile directory
-
-    var xx=file;
-
-
-    var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile);
-    file.initWithPath(".mail2PdfNodeInit.js");
-
-    var file2 = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile);
-    var destination=fileWriter.getLocalDirectory("exportToPdf").path+"\\processNodeMail.exe"
-    file2.initWithPath(destination);
-    file.copyTo(destination, "mail2PdfNodeInit.js");
-
-}*/
 
 function runNodeMail2pdf(exportFileName, callback) {
-    //generation od init js file for node inlcuding location of this file
-    /*  fileWriter.writeFile("exportToPdf","processNodeMail.exe","node "+nodeStartDir+"mail2PdfNodeInit.js");
-      var mail2PdfNodeInitPath=fileWriter.getLocalDirectory("exportToPdf").path+"\\processNodeMail.exe"
-        var file = Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile);
 
-     // file.initWithPath("D:\\GitHub\\mail2pdfModule\\chrome\\content\\mboximport\\mail2pdf\\processNodeMail.bat");
-      file.initWithPath(mail2PdfNodeInitPath);*/
-
-// write jsonFile path in .bat
 
     let encoder = new TextEncoder();
     var text = "cd .\nnode " + mail2PdfNodeInitPath + " " + mailsJsonPath + " " + userDirPath + "\npause";
@@ -203,7 +189,36 @@ function runNodeMail2pdf(exportFileName, callback) {
             process.init(processNodeMail_bat_file);
             //    var args = [exportFileName,userDirPath];
             var args = [];
-            process.run(true, args, args.length)
+            // process.run(true, args, args.length);
+
+          if(sep=="/")// linux comand has to run maually)
+            alert("List or files ok, please run command exportMailsToPdf.sh located in your user directory");
+          OS.File.open(processNodeMail_bat_file).then(function(valOpen)
+            {
+                var xxx=valOpen;
+            })
+
+            ;
+            return;
+            process.runAsync(args, args.length, function () {
+                    observe = function (subject, topic, data) {
+                        console.log(subject);
+                        console.log(topic);
+                        console.log(data);
+                    }
+                    register = function () {
+                        var observerService = Components.classes["@mozilla.org/observer-service;1"]
+                            .getService(Components.interfaces.nsIObserverService);
+                        observerService.addObserver(this, "myTopicID", false);
+                    }
+                    unregister = function () {
+                        var observerService = Components.classes["@mozilla.org/observer-service;1"]
+                            .getService(Components.interfaces.nsIObserverService);
+                        observerService.removeObserver(this, "myTopicID");
+                    }
+                    register();
+                },true
+            )
             return callback;
         },
         function (aReason) {
